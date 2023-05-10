@@ -168,7 +168,7 @@ Below, we will explain the sampling function and how to use the Hamiltonian of t
 
 -  ## Sampling Function
 
-    In QAGC, all participants need to use the sampling function we have provided. Please refer to the `example_sampling.ipynb` in the `tutorials` folder for instructions on how to use it.
+    In QAGC, all participants need to use the sampling function we have provided. Please refer to the `sampling.ipynb` in the `tutorials` folder for instructions on how to use it.
 
     This sampling function has the following properties:
     - Transpile the input circuit to the gates implemented on the real device for both superconducting and ion trap types and add the equivalent noise to measure it.
@@ -288,9 +288,9 @@ The following Python software library can be used in QAGC.
 
 All codes we have prepared are written by using **QURI Parts**.
 
-In QAGC, it is also possible to use **Qiskit** as an input of the sampling function. When you input a Qiskit circuit or operator, it is automatically converted into QURI Parts one and sampled. We have provided an example of how to use the sampler and sampling estimator with qiskit circuits and operators in `tutorials.example_qiskit.ipynb`.
+In QAGC, it is also possible to use **Qiskit** as an input of the sampling function. When you input a Qiskit circuit or operator, it is automatically converted into QURI Parts one and sampled. We have provided an example of how to use the sampler and sampling estimator with qiskit circuits and operators in `tutorials.qiskit_sampling.ipynb`.
 
-In QURI Parts, There are codes to convert **Cirq** circuits and operators to **QURI Parts**. When implementing with **Cirq**, you can use these codes to use the provided sampling function with cirq circuits and operators.
+In QURI Parts, there are codes to convert **Cirq** circuits and operators to **QURI Parts**. When implementing with **Cirq**, you can use these codes to use the provided sampling function with cirq circuits and operators.
 
 ```python
 from quri_parts.cirq.circuit import circuit_from_cirq
