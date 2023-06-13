@@ -7,6 +7,7 @@ from openfermion.utils import load_operator
 
 from quri_parts.algo.ansatz import HardwareEfficientReal
 from quri_parts.algo.optimizer import Adam, OptimizerStatus
+from quri_parts.circuit import LinearMappedUnboundParametricQuantumCircuit
 from quri_parts.core.estimator.gradient import parameter_shift_gradient_estimates
 from quri_parts.core.measurement import bitwise_commuting_pauli_measurement
 from quri_parts.core.sampling.shots_allocator import (
@@ -84,15 +85,16 @@ class RunAlgorithm:
 
         # make hf + HEreal ansatz
         hf_gates = ComputationalBasisState(n_qubits, bits=0b00001111).circuit.gates
+        hf_circuit = LinearMappedUnboundParametricQuantumCircuit(n_qubits).combine(hf_gates)
         hw_ansatz = HardwareEfficientReal(qubit_count=n_qubits, reps=1)
-        hw_hf = hw_ansatz.combine(hf_gates)
+        hf_circuit.extend(hw_ansatz)
 
-        parametric_state = ParametricCircuitQuantumState(n_qubits, hw_hf)
+        parametric_state = ParametricCircuitQuantumState(n_qubits, hf_circuit)
 
-        hardware_type = "sc"
+        hardware_type = "it"
         shots_allocator = create_equipartition_shots_allocator()
         measurement_factory = bitwise_commuting_pauli_measurement
-        n_shots = 10**5
+        n_shots = 10**4
 
         sampling_estimator = (
             challenge_sampling.create_concurrent_parametric_sampling_estimator(

@@ -45,7 +45,7 @@ def iontrap_native_gate_representation(gate: QuantumGate) -> list[list[complex]]
     elif gate.name == "ZZ":
         gate_list = [[1, 0, 0, 0], [0, 1j, 0, 0], [0, 0, 1j, 0], [0, 0, 0, 1]]
     elif gate.name == "RZZ":
-        theta = gate.params
+        theta = gate.params[0]
         gate_list = [
             [1, 0, 0, 0],
             [0, complex_exp(theta), 0, 0],

@@ -82,10 +82,14 @@ def sampling_estimate_gc(
     circuit_and_shots = []
     for _, circuit, shots in measurement_circuit_shots:
         circuit = transpiler(circuit)
-        if hardware_type == "it":
-            circuit = quri_parts_iontrap_native_circuit(circuit)
         circuit_and_shots.append((circuit, shots))
-    sampling_counts = sampler(circuit_and_shots)
+    if hardware_type == "sc":
+        sampling_counts = sampler(circuit_and_shots)
+    else:
+        circuit_and_shots_for_it_sampling = [
+            (quri_parts_iontrap_native_circuit(circuit), shots) for (circuit, shots) in circuit_and_shots
+        ]
+        sampling_counts = sampler(circuit_and_shots_for_it_sampling)
 
     pauli_sets = tuple(m.pauli_set for m, _, _ in measurement_circuit_shots)
     pauli_recs = tuple(
