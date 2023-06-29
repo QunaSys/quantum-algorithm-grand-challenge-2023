@@ -17,7 +17,7 @@ from quri_parts.core.state import ParametricCircuitQuantumState, ComputationalBa
 from quri_parts.openfermion.operator import operator_from_openfermion_op
 
 sys.path.append("../")
-from utils.challenge_2023 import ChallengeSampling, QuantumCircuitTimeExceededError
+from utils.challenge_2023 import ChallengeSampling, TimeExceededError
 
 
 """
@@ -49,8 +49,8 @@ def vqe(hamiltonian, parametric_state, estimator, init_params, optimizer):
             opt_state = optimizer.step(opt_state, c_fn, g_fn)
             print(f"iteration {opt_state.niter}")
             print(opt_state.cost)
-        except QuantumCircuitTimeExceededError:
-            print("Reached the limit of shots")
+        except TimeExceededError as e:
+            print(str(e))
             return opt_state
 
         if opt_state.status == OptimizerStatus.FAILED:

@@ -21,3 +21,6 @@ A link to the presentation of your team’s hackathon project (e.g., video, jupy
 
 ## Source code: 
 A link to the final source code for your team's hackathon project (e.g., a GitHub repo).
+
+## Your score (Optional)
+This will be used for reference during score evaluation. The results from less than three calculation are also acceptable

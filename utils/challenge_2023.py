@@ -4,12 +4,10 @@ from typing import Mapping, Sequence, Union
 from qiskit.circuit import QuantumCircuit as QiskitQuantumCircuit
 from qiskit.opflow import PauliOp, PauliSumOp
 from quri_parts.circuit import NonParametricQuantumCircuit
-from quri_parts.circuit.gate_names import SINGLE_QUBIT_GATE_NAMES, TWO_QUBIT_GATE_NAMES
+
 from quri_parts.circuit.noise import (
     BitFlipNoise,
-    CircuitNoiseInstruction,
     DepolarizingNoise,
-    GateNoiseInstruction,
     MeasurementNoise,
     NoiseModel,
     ThermalRelaxationNoise,
@@ -36,24 +34,23 @@ from quri_parts.core.state import (
     GeneralCircuitQuantumState,
     ParametricCircuitQuantumState,
 )
-from quri_parts.quantinuum.circuit import gate_names as quantinuum_gate_names
-from quri_parts.quantinuum.circuit.transpile import QuantinuumSetTranspiler
-from quri_parts.qulacs.sampler import (
-    create_qulacs_vector_concurrent_sampler,
-    create_qulacs_noisesimulator_concurrent_sampler,
-)
 from quri_parts.qiskit.circuit import circuit_from_qiskit
 from quri_parts.qiskit.operator import operator_from_qiskit_op
+from quri_parts.quantinuum.circuit.transpile import QuantinuumSetTranspiler
+from quri_parts.qulacs.sampler import (
+    create_qulacs_noisesimulator_concurrent_sampler,
+    create_qulacs_vector_concurrent_sampler,
+)
 
 from utils.challenge_transpiler import (
     SCSquareLatticeTranspiler,
     quri_parts_iontrap_native_circuit,
 )
-
 from utils.sampling_estimator import sampling_estimate_gc
+from time import time
 
 max_qc_time = 1000
-
+max_run_time = 6 * 10 ** 5
 QPQiskitCircuit = Union[NonParametricQuantumCircuit, QiskitQuantumCircuit]
 QPQiskitOperator = Union[Operator, Union[PauliSumOp, PauliOp]]
 
@@ -68,6 +65,7 @@ class ChallengeSampling:
         self.transpiled_circuit = None
         self.gate_time: float = 0
         self.initializing_time: float = 0
+        self.init_time: float = time()
 
     def sampler(
         self,
@@ -103,8 +101,10 @@ class ChallengeSampling:
         tot_time = tot_gate_time + tot_initializing_time
         self.total_quantum_circuit_time += tot_time
 
-        if self.total_quantum_circuit_time > max_qc_time:
-            raise QuantumCircuitTimeExceededError(self.total_quantum_circuit_time)
+        now_time = time()
+        run_time = now_time - self.init_time
+        if self.total_quantum_circuit_time > max_qc_time or run_time > max_run_time:
+            raise TimeExceededError(self.total_quantum_circuit_time, run_time)
 
         return counts
 
@@ -203,8 +203,10 @@ class ChallengeSampling:
         tot_time = tot_gate_time + tot_initializing_time
         self.total_quantum_circuit_time += tot_time
 
-        if self.total_quantum_circuit_time > max_qc_time:
-            raise QuantumCircuitTimeExceededError(self.total_quantum_circuit_time)
+        now_time = time()
+        run_time = now_time - self.init_time
+        if self.total_quantum_circuit_time > max_qc_time or run_time > max_run_time:
+            raise TimeExceededError(self.total_quantum_circuit_time, run_time)
 
         return estimated_value
 
@@ -416,32 +418,27 @@ class ChallengeSampling:
         t2: float,
         gate_time: float,
     ) -> NoiseModel:
-        single_gates = [*SINGLE_QUBIT_GATE_NAMES, quantinuum_gate_names.U1q]
-        double_gates = [
-            *TWO_QUBIT_GATE_NAMES,
-            quantinuum_gate_names.RZZ,
-            quantinuum_gate_names.ZZ,
-        ]
-        noises: list[Union[CircuitNoiseInstruction, GateNoiseInstruction]] = [
-            DepolarizingNoise(
-                single_qubit_depolarizing_error,
-                target_gates=single_gates,
-            ),
-            DepolarizingNoise(
-                double_qubit_depolarizing_error,
-                target_gates=double_gates,
-            ),
-            ThermalRelaxationNoise(
-                t1=t1,
-                t2=t2,
-                gate_time=gate_time,
-                excited_state_population=0.1,
-            ),
-            MeasurementNoise(
-                single_qubit_noises=[BitFlipNoise(bitflip_error)],
-            ),
-        ]
-        model = NoiseModel(noises)
+        model = NoiseModel()
+        model.add_noise(
+            noise=DepolarizingNoise(single_qubit_depolarizing_error),
+            custom_gate_filter=lambda gate: len(gate.target_indices)
+            + len(gate.control_indices)
+            == 1,
+        )
+        model.add_noise(
+            noise=DepolarizingNoise(double_qubit_depolarizing_error),
+            custom_gate_filter=lambda gate: len(gate.target_indices)
+            + len(gate.control_indices)
+            == 2,
+        )
+        model.add_noise(
+            noise=ThermalRelaxationNoise(
+                t1=t1, t2=t2, gate_time=gate_time, excited_state_population=0.1
+            )
+        )
+        model.add_noise(
+            noise=MeasurementNoise(single_qubit_noises=[BitFlipNoise(bitflip_error)])
+        )
         return model
 
     def _concurrent_sampler(self, noise_model: NoiseModel) -> ConcurrentSampler:
@@ -464,8 +461,8 @@ class ChallengeSampling:
             # sc (super conductor type) transpiler
             transpiled_circuit = transpiler(circuit)
 
-            t1 = 1.5*1e-4
-            t2 = 1.5*1e-4
+            t1 = 1.5 * 1e-4
+            t2 = 1.5 * 1e-4
             single_qubit_depolarizing_error = 1e-3
             double_qubit_depolarizing_error = 1e-2
             bitflip_error = 1e-2
@@ -507,15 +504,22 @@ class ChallengeSampling:
         self.total_quantum_circuit_time = 0
 
 
-class QuantumCircuitTimeExceededError(Exception):
-    def __init__(self, time: float):
-        self.time = time
+class TimeExceededError(Exception):
+    def __init__(self, qc_time: float, run_time: float):
+        self.qc_time = qc_time
+        self.run_time = run_time
 
     def __str__(self) -> str:
-        return (
-            f"Reached quantum circuit time {max_qc_time}. "
-            f"Quantum circuit time {self.time}"
-        )
+        if self.run_time > max_run_time:
+            return (
+                f"Reached maximum runtime {max_run_time}. "
+                f"Run time {self.run_time}"
+            )
+        else:
+            return (
+                f"Reached maximum quantum circuit time {max_qc_time}. "
+                f"Quantum circuit time {self.qc_time}"
+            )
 
 
 if __name__ == "__main__":

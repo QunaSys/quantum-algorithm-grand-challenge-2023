@@ -9,7 +9,7 @@
 3. [Problem description](#problem)
     - [Fermi-Hubbard Model](#problem_1)
     - [Problem statement](#problem_2)
-4. [Evaluation Criteria](#EvaluationCriteria)
+4. [Evaluation](#Evaluation)
 5. [Implementation](#Implementation)
 6. [How to submit](#Submission)
 7. [Description of the Provided Program](#program)
@@ -17,7 +17,7 @@
 9. [Notes and Prohibited Items](#forbidden)
     - [Notes on Evaluation](#forbidden_1)
     - [Prohibited Items](#forbidden_2)
-10. [Copyright](#Copyright)
+10. [Terms](#Terms)
 
 
 # Overview of Quantum Algorithm Grand Challenge <a id="Overview"></a>
@@ -60,19 +60,19 @@ Based on these situations, the focuses of QAGC are on the industrial application
 
 The ground state energy of a molecule is an important quantity for understanding its properties and behavior, and many quantum chemistry studies focus on the ground state energy of individual atoms or molecules. 
 
-In QAGC, the task of participants is to calculate the ground state energy of a model (Hamiltonian) which we have prepared. From the focus of QAGC, the hamiltonian should have some properties as follows:
+In QAGC, the task of participants is to calculate the ground state energy of a model (Hamiltonian) which we have prepared. From the focus of QAGC, the Hamiltonian should have some properties as follows:
 
 - Has similar properties as the molecular Hamiltonian used in quantum chemistry.
 
-  - The number of terms of the hamiltonian is $O(N^4)$, which is the same as the molecular Hamiltonian. Then we can compare the performance of grouping methods that reduce the number of measurements.
-  - This hamiltonian has the same order of operator norm as the molecular Hamiltonian. Therefore, the resulting ground state energy scale is similar to the scale in quantum chemistry.
+  - The number of terms of the Hamiltonian is $O(N^4)$, which is the same as the molecular Hamiltonian. Then we can compare the performance of grouping methods that reduce the number of measurements.
+  - This Hamiltonian has the same order of operator norm as the molecular Hamiltonian. Therefore, the resulting ground state energy scale is similar to the scale in quantum chemistry.
 
 
-- The exact value of ground state energy of this hamiltonian can be calculated classically for the arbitrary size of the system.
+- The exact value of ground state energy of this Hamiltonian can be calculated classically for the arbitrary size of the system.
   
   - Our aim through QAGC is also to create a common metric that can evaluate various NISQ algorithms. For evaluating algorithms in large qubit systems that cannot be simulated in classical computers, it will be necessary to know the exact value of the quantity to be measured as a reference value for evaluating NISQ algorithms. 
 
-We have prepared a hamiltonian that satisfies all of these properties. The detail of the hamiltonian and the problem statement in QAGC is written in [Problem](#problem).
+We have prepared a Hamiltonian that satisfies all of these properties. The detail of the Hamiltonian and the problem statement in QAGC is written in [Problem](#problem).
 
 ## NISQ device simulation <a id="Introduction_3"></a>
 To explore the practical applications of NISQ devices and visualize bottlenecks in their utilization, it is necessary to use simulators that reflect the features of NISQ devices.
@@ -86,10 +86,10 @@ When sampling within an algorithm, it is restricted to not exceed *1000s* of the
 The Fermi-Hubbard model is a model used to describe the properties of strongly correlated electron systems, which are solids with strong electron correlation effects. It is used to explain important physical phenomena such as magnetism, Mott insulators, and high-temperature superconductors. 
 
 
-In QAGC, we deal with a one-dimensional orbital rotated Fermi-Hubbard model with **periodic boundary conditions**. The hamiltonian of one-dimensional Fermi-Hubbard model is as follows:
+In QAGC, we deal with a one-dimensional orbital rotated Fermi-Hubbard model with **periodic boundary conditions**. The Hamiltonian of one-dimensional Fermi-Hubbard model is as follows:
 
 $$
-    H = - t \sum_{i=0}^{N-1} \sum_{\sigma=\uparrow, \downarrow} (a^\dagger_{i, \sigma}  a_{i+1, \sigma} +  a^\dagger_{i, \sigma}  a_{i+1, \sigma})  - \mu \sum_{i=0}^{N-1} \sum_{\sigma=\uparrow, \downarrow}  a^\dagger_{i, \sigma} a_{i, \sigma} + U \sum_{i=0}^{N-1} a^\dagger_{i, \uparrow}  a_{i, \uparrow}  a^\dagger_{i, \downarrow} a_{i, \downarrow},
+    H = - t \sum_{i=0}^{N-1} \sum_{\sigma=\uparrow, \downarrow} (a^\dagger_{i, \sigma}  a_{i+1, \sigma} +  a^\dagger_{i+1, \sigma}  a_{i, \sigma})  - \mu \sum_{i=0}^{N-1} \sum_{\sigma=\uparrow, \downarrow}  a^\dagger_{i, \sigma} a_{i, \sigma} + U \sum_{i=0}^{N-1} a^\dagger_{i, \uparrow}  a_{i, \uparrow}  a^\dagger_{i, \downarrow} a_{i, \downarrow},
 $$
 
 where $t$ is the tunneling amplitude, $\mu$ is the chemical potential, and $U$ is the Coulomb potential. For the case of half-filling, i.e. the number of electrons is equal to the number of sites, the exact value of the ground-state energy for this Hamiltonian can be calculated by using Bethe Ansatz method. 
@@ -97,9 +97,18 @@ where $t$ is the tunneling amplitude, $\mu$ is the chemical potential, and $U$ i
 This time we consider the orbital rotated one-dimensional Fermi-Hubbard model. The orbital rotation means linear transformation of the creation operator $a_i^\dagger$ and annihilation operator $a_i$ by using unitary matrices
 
 $$
-    \tilde a_i^\dagger = \sum_{k=0}^{N-1} u_{ik} a_k^\dagger, \quad 
-    \tilde a_i = \sum_{k=0}^{N-1} u_{ik}^* a_k.
+    \tilde c_i^\dagger = \sum_{k=0}^{2N-1} u_{ik} c_k^\dagger, \quad 
+    \tilde c_i = \sum_{k=0}^{2N-1} u_{ik}^* c_k.
 $$
+
+where we label the creation operator $a_{i, \sigma}^\dagger$ as follows:
+
+$$
+    a_{i, \uparrow}^\dagger = c_{2i}^\dagger, \quad 
+    a_{i, \downarrow}^\dagger = c_{2i + 1}^\dagger.
+$$
+
+The annihilator operator is labeled in the same way.
 
 By performing orbital rotation in this way, without changing the energy eigenvalues, we can increase the number of terms to $O(N^4)$ which is the same as the molecular Hamiltonian. 
 
@@ -116,13 +125,17 @@ where electrons are filled from the bottom up for a number of sites.
 Find the energy of the ground state of the one-dimensional orbital rotated Fermi-Hubbard model.
 
 $$
-    H = - t \sum_{i=0}^{N-1} \sum_{\sigma=\uparrow, \downarrow} (\tilde a^\dagger_{i, \sigma} \tilde a_{i+1, \sigma} + \tilde a^\dagger_{i, \sigma} \tilde a_{i+1, \sigma})  - \mu \sum_{i=0}^{N-1} \sum_{\sigma=\uparrow, \downarrow}  a^\dagger_{i, \sigma} a_{i, \sigma} + U \sum_{i=0}^{N-1} \tilde a^\dagger_{i, \uparrow} \tilde a_{i, \uparrow} \tilde a^\dagger_{i, \downarrow} \tilde a_{i, \downarrow} 
+    H = - t \sum_{i=0}^{2N-1}(\tilde c^\dagger_i \tilde c_{i+1} + \tilde c^\dagger_{i+1} \tilde c_i)  - \mu \sum_{i=0}^{2N-1}  \tilde c^\dagger_i \tilde c_i + U \sum_{i=0}^{N-1} \tilde c^\dagger_{2i} \tilde c_{2i} \tilde c^\dagger_{2i + 1} \tilde c_{2i + 1} 
 $$
 
-The value of each parameter is $N = 4,\ t=1, \mu=1.5,\ U=3$. For QAGC, we prepared an orbital rotated Hamiltonian with the random unitary matrix $u$ and performed Hartree-Fock calculation. Hamiltonians for 4 and 8 qubits are provided in the `hamiltonian` folder in `.data` format.
+The value of each parameter is $N = 4,\ t=1, \mu=1.5,\ U=3$. 
+
+For QAGC, we prepared an orbital rotated Hamiltonian with the random unitary matrix $u$ and performed Hartree-Fock calculation. Hamiltonians for 4 and 8 qubits are provided in the `hamiltonian` folder in `.data` format. Participants can use this Hamiltonian to implement their algorithm.
+
+During the evaluation, we will use an orbital rotated Hamiltonian by using a unitary matrix different from the one used to construct the Hamiltonian in the `hamiltonian` folder. 
 
 
-# Evaluation Criteria <a id="EvaluationCriteria"></a>
+# Evaluation<a id="Evaluation"></a>
 
 First, the submitted answers are checked for compliance with the prohibited items. Then, we calculates the score based on the answers, and the ranking is determined. 
 
@@ -153,6 +166,10 @@ Reducing execution time is crucial for considering the industrial application of
 
 For QAGC, sampling is restricted to ensure that the expected execution time does not exceed *1000s*.
 
+## Limitation by Run Time During the Evaluation
+
+During the evaluation period by the management, if the evaluation period exceeds one week ($6*10^5$ sec) and is not completed, it will be forcibly stopped and the score at that time will be the final score.
+
 # Implementation <a id="Implementation"></a>
 
 Here, we will explain the necessary items for participants to implement their answer code.
@@ -178,7 +195,7 @@ Below, we will explain the sampling function and how to use the Hamiltonian of t
 The details of this transpile, noise and the expected execution time are written in `technical_details.md`.
 -  ## Hamiltonian
 
-    The Hamiltonian to be used in the problem is stored in the `hamiltonian` folder in `.data` format. To load it, use `openfermion.utils.load_operator()` as follows:
+    The orbital rotated Fermi-Hubbard Hamiltonian is stored in the `hamiltonian` folder in `.data` format. To load it, use `openfermion.utils.load_operator()` as follows:
     ``` python
     from openfermion.utils import load_operator
 
@@ -188,9 +205,11 @@ The details of this transpile, noise and the expected execution time are written
     ```
     In addition to the 8-qubit Hamiltonian used for the problem, there are also 4 and 8-qubit Hamiltonians in this folder that can be freely used to verify the implemented algorithm. 
 
+    The important point is that during the evaluation, we will use an orbital rotated Hamiltonian by using a unitary matrix different from the one used to construct the Hamiltonian in the `hamiltonian` folder.
+
 Participants can calculate the score by running `evaluator.py`.
   - **num_exec**: The number of times the algorithm is executed during evaluation.
-  - **ref_value**: The reference value (exact value of the ground state energy) for each hamiltonian is listed. The score is evaluated based on this value.
+  - **ref_value**: The reference value (exact value of the ground state energy) for each Hamiltonian is listed. The score is evaluated based on this value.
 
 Since we are dealing with a large qubits system such as 8 qubits, running evaluator.py using the code in example.py takes *6-7* hours for a single execution.
 
@@ -305,7 +324,7 @@ quri_parts_operator = operator_from_cirq_op(cirq_operator)
 The version of the main package used in the challenge for participants will be fixed as follows:
 
 ```
-quri-parts == 0.10
+quri-parts == 0.11.0
 qiskit == 0.39.5
 cirq == 1.1.0
 openfermion == 1.5.1
@@ -351,8 +370,30 @@ The validity of the final answer will be judged by the judge based on whether it
 
   - The only codes that participants can modify are those in the `problem` folder. Do not modify the codes in the utils folder.
 
-# Copyright <a id="Copyright"></a>
+# Terms <a id="Terms"></a>
 
-The copyright of the programming code included in the participant's answer belongs to the participant.
-The operator may execute and modify the programming code for the evaluation and verification of the answer, and other necessary operations of Quantum Algorithm Grand Challenge.
-The operator will not publicly disclose the programming code without the permission of the submitter.
+I, or our company (the participant), agree to the following conditions of participation (the "Terms") and will participate in the Quantum Algorithm Grand Challenge (QAGC) conducted or operated by QunaSys Co., Ltd. (QunaSys). If any of our employees participate in the QAGC, they will also comply with these Terms.
+
+1.	The purpose of the QAGC is to engage participants in practical problem-solving learning by collaborating with themselves or other participants and utilizing the challenges, programs, or data (referred to as "challenge data," etc.) provided by QunaSys.
+
+2.	Participants are expected to analyze the challenge data, create responses to the challenges, and develop or modify programs.
+
+3.	All intellectual property rights arising from the challenge data provided by QunaSys belong exclusively to QunaSys.
+
+4.	The intellectual property rights to the results created or generated by participants using the challenge data (referred to as "the Results") belong to the respective participants. The Results include but are not limited to new ideas, responses to challenges, and programs.
+
+5.	Participants are required to submit the Results to QunaSys by the end of the QAGC.
+
+6.	QunaSys will not use, exploit, or implement the Results beyond the scope of considering awards in the QAGC or the purpose of operating this challenge.
+
+7.	Unless participants explicitly refuse in advance, the Results will be made publicly available via Github.
+
+8.	QunaSys will award a prize to participants who have been selected as winners based on the evaluation of the Results.
+
+9.	Participants must comply with all laws, regulations, and public order and morals and must not infringe upon any third-party intellectual property rights or any other rights in participating in the QAGC.
+
+10.	Participants shall resolve any disputes arising from the QAGC on their own and shall not seek compensation or indemnification from QunaSys.
+
+11.	If a participant violates any provisions of these Terms and causes damage to QunaSys or other participants, they shall be liable to compensate for such damages.
+
+12.	If a participant is a legal entity, the responsibility for any violations of these Terms by employees who actually participate in the project will be borne by that legal entity.
